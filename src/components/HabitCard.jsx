@@ -124,6 +124,7 @@ export default function HabitCard({ habit, entry, streak, photo, onUpload, onDel
         ref={inputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        capture="environment"
         className="hidden"
         onChange={handleFileChange}
       />

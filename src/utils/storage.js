@@ -19,11 +19,11 @@ function migrateIcon(icon) {
 }
 
 export const DEFAULT_HABITS = [
-  { id: '1', name: 'Wake up early', icon: 'Sunrise' },
-  { id: '2', name: 'Exercise', icon: 'Dumbbell' },
-  { id: '3', name: 'Drink water', icon: 'Droplets' },
-  { id: '4', name: 'Read', icon: 'BookOpen' },
-  { id: '5', name: 'Meditate', icon: 'Brain' },
+  { id: '1', name: 'Wake up early', icon: 'Sunrise',  time: '06:00' },
+  { id: '2', name: 'Exercise',      icon: 'Dumbbell', time: '07:00' },
+  { id: '3', name: 'Drink water',   icon: 'Droplets', time: '08:00' },
+  { id: '4', name: 'Read',          icon: 'BookOpen', time: '21:00' },
+  { id: '5', name: 'Meditate',      icon: 'Brain',    time: '07:30' },
 ];
 
 export function loadHabits() {

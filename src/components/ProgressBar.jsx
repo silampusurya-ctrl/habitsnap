@@ -11,19 +11,19 @@ export default function ProgressBar({ completed, total }) {
       : pct >= 25
       ? '✨ Good start, keep it up!'
       : pct > 0
-      ? '🌱 You\'ve started — don\'t stop now!'
+      ? '🌱 Started! Don\'t stop now!'
       : '👋 Ready to build great habits today?';
 
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-green-100 p-4 mb-4">
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold text-gray-700">Today's Progress</span>
-        <span className="text-sm font-bold text-green-600">
-          {completed}/{total} <span className="text-gray-400 font-normal">habits</span>
+        <span className="text-base font-bold text-gray-700">Today's Progress</span>
+        <span className="text-base font-bold text-green-600">
+          {completed}/{total} <span className="text-gray-400 font-normal text-sm">habits</span>
         </span>
       </div>
 
-      <div className="relative h-3 bg-gray-100 rounded-full overflow-hidden mb-3">
+      <div className="relative h-4 bg-gray-100 rounded-full overflow-hidden mb-3">
         <div
           className="progress-bar-fill h-full rounded-full transition-all duration-700 ease-out"
           style={{
@@ -38,7 +38,7 @@ export default function ProgressBar({ completed, total }) {
         />
       </div>
 
-      <p className="text-xs text-gray-500 text-center">{message}</p>
+      <p className="text-sm text-gray-500 text-center font-medium">{message}</p>
     </div>
   );
 }

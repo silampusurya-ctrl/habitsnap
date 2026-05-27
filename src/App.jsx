@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Plus, Sparkles } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { Plus, Sparkles, History } from 'lucide-react';
 import HabitCard from './components/HabitCard';
 import { HabitIcon } from './components/HabitIcon';
 import InstallPrompt from './components/InstallPrompt';
 import ProgressBar from './components/ProgressBar';
 import AddHabitModal from './components/AddHabitModal';
 import ImagePreviewModal from './components/ImagePreviewModal';
+import HistoryView from './components/HistoryView';
 import {
   loadHabits, saveHabits,
   loadDailyData, saveDailyData,
@@ -18,16 +19,26 @@ function getTodayLabel() {
   return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
-// Sort incomplete habits by their target time, completed ones go last
+function computeMissedIds(habits, todayEntries) {
+  const now = new Date();
+  return habits
+    .filter(h => {
+      if (todayEntries[h.id]?.completed) return false;
+      if (!h.time) return false;
+      const [hr, mn] = h.time.split(':').map(Number);
+      const target = new Date();
+      target.setHours(hr, mn, 0, 0);
+      return now > target;
+    })
+    .map(h => h.id);
+}
+
 function sortHabits(habits, todayEntries) {
   return [...habits].sort((a, b) => {
     const aDone = todayEntries[a.id]?.completed ? 1 : 0;
     const bDone = todayEntries[b.id]?.completed ? 1 : 0;
     if (aDone !== bDone) return aDone - bDone;
-    // Both incomplete or both complete → sort by time
-    const aTime = a.time || '99:99';
-    const bTime = b.time || '99:99';
-    return aTime.localeCompare(bTime);
+    return (a.time || '99:99').localeCompare(b.time || '99:99');
   });
 }
 
@@ -37,6 +48,8 @@ export default function App() {
   const [todayPhotos, setTodayPhotos] = useState({});
   const [showAdd, setShowAdd] = useState(false);
   const [preview, setPreview] = useState(null);
+  const [showHistory, setShowHistory] = useState(false);
+  const [tick, setTick] = useState(0); // ticks every minute for auto-red check
 
   const todayKey = getTodayKey();
 
@@ -49,6 +62,13 @@ export default function App() {
   useEffect(() => { saveHabits(habits); }, [habits]);
   useEffect(() => { saveDailyData(dailyData); }, [dailyData]);
 
+  // Tick every minute → triggers missedIds recompute
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Reload at midnight
   useEffect(() => {
     const key = getTodayKey();
     const id = setInterval(() => { if (getTodayKey() !== key) window.location.reload(); }, 60_000);
@@ -56,6 +76,10 @@ export default function App() {
   }, []);
 
   const todayEntries = getTodayEntries(dailyData);
+
+  // Auto red tick: habits whose target time has passed with no proof
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const missedIds = useMemo(() => computeMissedIds(habits, todayEntries), [habits, todayEntries, tick]);
 
   const handleUpload = useCallback(async (habitId, base64) => {
     await savePhoto(todayKey, habitId, base64);
@@ -68,6 +92,17 @@ export default function App() {
       },
     }));
   }, [todayKey]);
+
+  // Correction: mark a past-day habit as completed
+  const handleCorrection = useCallback((dateKey, habitId) => {
+    setDailyData((prev) => ({
+      ...prev,
+      [dateKey]: {
+        ...prev[dateKey],
+        [habitId]: { completed: true, timestamp: Date.now(), corrected: true },
+      },
+    }));
+  }, []);
 
   const handleDelete = useCallback((habitId) => {
     setHabits((prev) => prev.filter((h) => h.id !== habitId));
@@ -82,18 +117,37 @@ export default function App() {
   const completedCount = habits.filter((h) => todayEntries[h.id]?.completed).length;
   const existingNames = habits.map((h) => h.name.toLowerCase());
 
+  if (showHistory) {
+    return (
+      <HistoryView
+        habits={habits}
+        dailyData={dailyData}
+        onClose={() => setShowHistory(false)}
+        onCorrection={handleCorrection}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
       <div className="max-w-md mx-auto px-4 pb-28">
 
         {/* Header */}
-        <header className="pt-8 pb-5 text-center">
-          <div className="flex items-center justify-center gap-2 mb-1">
-            <Sparkles size={26} className="text-green-500" />
-            <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">HabitSnap</h1>
-            <Sparkles size={26} className="text-green-500" />
+        <header className="pt-8 pb-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles size={26} className="text-green-500" />
+              <h1 className="text-3xl font-extrabold text-gray-900 tracking-tight">HabitSnap</h1>
+            </div>
+            <button
+              onClick={() => setShowHistory(true)}
+              className="flex items-center gap-1.5 bg-white border border-gray-200 shadow-sm px-3 py-2 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            >
+              <History size={16} className="text-gray-500" />
+              History
+            </button>
           </div>
-          <p className="text-base text-gray-400 font-medium">{getTodayLabel()}</p>
+          <p className="text-base text-gray-400 font-medium mt-1">{getTodayLabel()}</p>
         </header>
 
         {/* Progress */}
@@ -114,6 +168,7 @@ export default function App() {
                 entry={todayEntries[habit.id] ?? null}
                 streak={getStreakForHabit(habit.id, dailyData)}
                 photo={todayPhotos[habit.id] ?? null}
+                missed={missedIds.includes(habit.id)}
                 onUpload={handleUpload}
                 onDelete={handleDelete}
                 onThumbnailClick={(src) => setPreview({ src, habitName: habit.name })}
@@ -122,7 +177,7 @@ export default function App() {
           ))}
         </div>
 
-        {/* Streaks strip */}
+        {/* Streaks */}
         {habits.length > 0 && (
           <div className="mt-6 bg-white rounded-2xl border border-gray-100 shadow-sm p-4">
             <p className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Current Streaks</p>
@@ -130,10 +185,7 @@ export default function App() {
               {habits.map((h) => {
                 const streak = getStreakForHabit(h.id, dailyData);
                 return (
-                  <div
-                    key={h.id}
-                    className="flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3 py-2"
-                  >
+                  <div key={h.id} className="flex items-center gap-2 bg-orange-50 border border-orange-100 rounded-xl px-3 py-2">
                     <HabitIcon iconName={h.icon} habitId={h.id} size={14} />
                     <span className="text-sm text-gray-700 font-semibold">{h.name}</span>
                     <span className="text-sm text-orange-500 font-bold">🔥{streak}d</span>
@@ -155,20 +207,11 @@ export default function App() {
       </button>
 
       {showAdd && (
-        <AddHabitModal
-          existingNames={existingNames}
-          onAdd={handleAddHabit}
-          onClose={() => setShowAdd(false)}
-        />
+        <AddHabitModal existingNames={existingNames} onAdd={handleAddHabit} onClose={() => setShowAdd(false)} />
       )}
       {preview && (
-        <ImagePreviewModal
-          src={preview.src}
-          habitName={preview.habitName}
-          onClose={() => setPreview(null)}
-        />
+        <ImagePreviewModal src={preview.src} habitName={preview.habitName} onClose={() => setPreview(null)} />
       )}
-
       <InstallPrompt />
     </div>
   );

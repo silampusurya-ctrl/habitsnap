@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, XCircle, Camera, ChevronDown, ChevronRight, Calendar } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, XCircle, Camera, ImageUp, ChevronDown, ChevronRight, Calendar } from 'lucide-react';
 import { HabitIcon } from './HabitIcon';
 import { getPhoto, savePhoto } from '../utils/photoDb';
 import { compressImage, ALLOWED_TYPES } from '../utils/imageUtils';
@@ -156,21 +156,21 @@ export default function HistoryView({ habits, dailyData, onClose, onCorrection }
                         {completed ? (
                           <CheckCircle2 size={28} className="text-green-500 flex-shrink-0" strokeWidth={2.5} />
                         ) : (
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <XCircle size={26} className="text-red-400" strokeWidth={2.5} />
-                            <label className={`flex items-center gap-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-bold px-3 py-2 rounded-xl cursor-pointer transition-colors ${isUp ? 'opacity-50' : ''}`}>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <XCircle size={24} className="text-red-400" strokeWidth={2.5} />
+                            {/* Camera */}
+                            <label className={`flex items-center gap-1 bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 text-sm font-bold px-2.5 py-2 rounded-xl cursor-pointer transition-colors ${isUp ? 'opacity-50' : ''}`} title="Camera">
                               <Camera size={14} />
-                              {isUp ? '...' : 'Fix'}
-                              <input
-                                type="file"
-                                accept="image/jpeg,image/png,image/webp"
-                                capture="environment"
-                                className="hidden"
-                                disabled={isUp}
-                                onChange={async (e) => {
-                                  const f = e.target.files?.[0];
-                                  if (f) await handleCorrectionUpload(key, h.id, f);
-                                  e.target.value = '';
+                              <input type="file" accept="image/jpeg,image/png,image/webp"
+                                capture="environment" className="hidden" disabled={isUp}
+                                onChange={async (e) => { const f = e.target.files?.[0]; if (f) await handleCorrectionUpload(key, h.id, f); e.target.value = ''; }} />
+                            </label>
+                            {/* Gallery */}
+                            <label className={`flex items-center gap-1 bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 text-sm font-bold px-2.5 py-2 rounded-xl cursor-pointer transition-colors ${isUp ? 'opacity-50' : ''}`} title="Gallery">
+                              <ImageUp size={14} />
+                              <input type="file" accept="image/jpeg,image/png,image/webp"
+                                className="hidden" disabled={isUp}
+                                onChange={async (e) => { const f = e.target.files?.[0]; if (f) await handleCorrectionUpload(key, h.id, f); e.target.value = '';
                                 }}
                               />
                             </label>

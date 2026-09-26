@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { CheckCircle2, Circle, Trash2, Edit2, Clock, Zap, Plus } from 'lucide-react';
 import { HabitIcon } from './HabitIcon';
 import AddScheduleModal from './AddScheduleModal';
+import { getScheduleCategory } from '../utils/scheduleCategories';
 
 function fmt12(t) {
   if (!t) return '';
@@ -106,6 +107,7 @@ export default function ScheduleView({ scheduleItems, todayData, onToggle, onAdd
       {/* Timeline */}
       <div className="space-y-2.5">
         {sorted.map((item, idx) => {
+          const category = getScheduleCategory(item.category);
           const entry = todayData?.[item.id];
           const completed = !!entry?.completed;
           const isCurrent = item.startTime <= now && item.endTime > now;
@@ -158,6 +160,14 @@ export default function ScheduleView({ scheduleItems, todayData, onToggle, onAdd
                         <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full">{duration}</span>
                       )}
                     </div>
+                    {category && (
+                      <span
+                        className="inline-flex text-xs font-bold px-2 py-0.5 rounded-full mt-1.5"
+                        style={{ color: category.color, background: category.bg }}
+                      >
+                        {category.label}
+                      </span>
+                    )}
                     {completed && entry?.timestamp && (
                       <p className="text-sm text-green-600 font-medium mt-0.5">
                         ✓ Done at {new Date(entry.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}

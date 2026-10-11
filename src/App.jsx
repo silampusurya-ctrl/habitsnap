@@ -8,6 +8,7 @@ import AddHabitModal from './components/AddHabitModal';
 import ImagePreviewModal from './components/ImagePreviewModal';
 import HistoryView from './components/HistoryView';
 import ScheduleView from './components/ScheduleView';
+import WorkProcessView from './components/WorkProcessView';
 import BottomNav from './components/BottomNav';
 import {
   loadHabits, saveHabits, loadDailyData, saveDailyData,
@@ -19,6 +20,7 @@ import {
 } from './utils/scheduleStorage';
 import { getTodayKey } from './utils/imageUtils';
 import { savePhoto, loadTodayPhotos, pruneOldPhotos } from './utils/photoDb';
+import { loadProcessItems, saveProcessItems } from './utils/processStorage';
 
 function getTodayLabel() {
   return new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
@@ -58,6 +60,9 @@ export default function App() {
   const [schedItems, setSchedItems] = useState(() => loadScheduleItems());
   const [schedData,  setSchedData]  = useState(() => loadScheduleData());
 
+  // ── Daily work process ───────────────────────────────────────────────────
+  const [processItems, setProcessItems] = useState(() => loadProcessItems());
+
   const todayKey = getTodayKey();
 
   useEffect(() => {
@@ -69,6 +74,7 @@ export default function App() {
   useEffect(() => { saveDailyData(dailyData); }, [dailyData]);
   useEffect(() => { saveScheduleItems(schedItems); }, [schedItems]);
   useEffect(() => { saveScheduleData(schedData); },   [schedData]);
+  useEffect(() => { saveProcessItems(processItems); }, [processItems]);
 
   useEffect(() => {
     const id = setInterval(() => setTick(t => t + 1), 60_000);
@@ -131,6 +137,20 @@ export default function App() {
     setSchedItems(p => p.filter(i => i.id !== id));
   }, []);
 
+  // ── Work process handlers ────────────────────────────────────────────────
+  const handleProcessAdd = useCallback(data => {
+    const id = `wp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+    setProcessItems(previous => [...previous, { id, ...data }]);
+  }, []);
+
+  const handleProcessEdit = useCallback(updated => {
+    setProcessItems(previous => previous.map(item => item.id === updated.id ? updated : item));
+  }, []);
+
+  const handleProcessDelete = useCallback(id => {
+    setProcessItems(previous => previous.filter(item => item.id !== id));
+  }, []);
+
   // ── Derived ───────────────────────────────────────────────────────────────
   const sortedHabits   = sortHabits(habits, todayEntries);
   const completedCount = habits.filter(h => todayEntries[h.id]?.completed).length;
@@ -159,6 +179,16 @@ export default function App() {
           onAdd={handleSchedAdd}
           onEdit={handleSchedEdit}
           onDelete={handleSchedDelete}
+        />
+      )}
+
+      {/* ── DAILY WORK PROCESS ──────────────────────────────── */}
+      {tab === 'process' && (
+        <WorkProcessView
+          items={processItems}
+          onAdd={handleProcessAdd}
+          onEdit={handleProcessEdit}
+          onDelete={handleProcessDelete}
         />
       )}
 

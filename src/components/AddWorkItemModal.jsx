@@ -1,0 +1,122 @@
+import { useState } from 'react';
+import { Plus, Save, X } from 'lucide-react';
+import * as Icons from 'lucide-react';
+import { PROCESS_STAGES } from '../utils/processStorage';
+
+export default function AddWorkItemModal({ initialStage = 'thinking', initialDate, editItem, onSave, onClose }) {
+  const [title, setTitle] = useState(editItem?.title ?? '');
+  const [notes, setNotes] = useState(editItem?.notes ?? '');
+  const [stage, setStage] = useState(editItem?.stage ?? initialStage);
+  const [workDate, setWorkDate] = useState(editItem?.workDate ?? initialDate);
+  const [error, setError] = useState('');
+
+  function handleSubmit(event) {
+    event.preventDefault();
+    if (!title.trim()) {
+      setError('Work title enter பண்ணுங்க.');
+      return;
+    }
+
+    onSave({
+      ...editItem,
+      title: title.trim(),
+      notes: notes.trim(),
+      stage,
+      workDate,
+    });
+    onClose();
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.55)' }}
+      onClick={onClose}
+    >
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-slide-up" onClick={event => event.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+          <div>
+            <h2 className="text-xl font-extrabold text-gray-900">{editItem ? 'Edit Work' : 'Add Daily Work'}</h2>
+            <p className="text-sm text-gray-400 mt-0.5">Move one useful idea towards the market.</p>
+          </div>
+          <button type="button" onClick={onClose} className="p-2 rounded-full hover:bg-gray-100" aria-label="Close">
+            <X size={20} className="text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-5 space-y-4">
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1.5">What are you working on?</label>
+            <input
+              autoFocus
+              type="text"
+              value={title}
+              maxLength={80}
+              onChange={event => { setTitle(event.target.value); setError(''); }}
+              placeholder="e.g. Wedding lead generation offer"
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+            {error && <p className="text-red-500 text-sm mt-1">{error}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1.5">Notes</label>
+            <textarea
+              value={notes}
+              maxLength={1000}
+              rows={5}
+              onChange={event => setNotes(event.target.value)}
+              placeholder="Write the idea, what you learned, next action, links or result..."
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base resize-none focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+            <p className="text-right text-xs text-gray-400 mt-1">{notes.length}/1000</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-2">Current Stage</label>
+            <div className="grid grid-cols-2 gap-2">
+              {PROCESS_STAGES.map(option => {
+                const StageIcon = Icons[option.icon];
+                const selected = stage === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setStage(option.id)}
+                    className="flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-bold transition-all"
+                    style={{
+                      color: selected ? option.color : '#6b7280',
+                      background: selected ? option.bg : '#fff',
+                      borderColor: selected ? option.color : '#e5e7eb',
+                      boxShadow: selected ? `0 0 0 1px ${option.color}` : 'none',
+                    }}
+                  >
+                    <StageIcon size={17} /> {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1.5">Work Date</label>
+            <input
+              type="date"
+              value={workDate}
+              onChange={event => setWorkDate(event.target.value)}
+              className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400"
+            />
+          </div>
+
+          <button
+            type="submit"
+            className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
+          >
+            {editItem ? <Save size={19} /> : <Plus size={20} />}
+            {editItem ? 'Save Changes' : 'Add to Process'}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}

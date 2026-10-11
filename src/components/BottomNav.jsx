@@ -1,8 +1,9 @@
-import { Home, CalendarDays, History } from 'lucide-react';
+import { Home, CalendarDays, History, Workflow } from 'lucide-react';
 
 const TABS = [
   { key: 'today',    Icon: Home,         label: 'Today'    },
   { key: 'schedule', Icon: CalendarDays, label: 'Schedule' },
+  { key: 'process',  Icon: Workflow,     label: 'Process'  },
   { key: 'history',  Icon: History,      label: 'History'  },
 ];
 

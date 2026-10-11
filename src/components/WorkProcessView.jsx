@@ -115,7 +115,7 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
         )}
       </header>
 
-      <div className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-4 -mx-4 px-4 lg:grid lg:grid-cols-4 lg:overflow-visible lg:mx-0 lg:px-0">
+      <div className="grid grid-cols-1 gap-4 pb-4 lg:grid-cols-4">
         {PROCESS_STAGES.map((stage, stageIndex) => {
           const StageIcon = Icons[stage.icon];
           const stageItems = dailyItems.filter(item => item.stage === stage.id);
@@ -123,7 +123,7 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
           return (
             <section
               key={stage.id}
-              className="min-w-[82vw] sm:min-w-[320px] lg:min-w-0 rounded-2xl border p-3 snap-center self-start"
+              className="w-full min-w-0 rounded-2xl border p-3 self-start"
               style={{ background: stage.bg, borderColor: stage.border }}
             >
               <div className="flex items-start justify-between gap-2 px-1 py-1">

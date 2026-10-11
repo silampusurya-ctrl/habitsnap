@@ -45,6 +45,27 @@ function sortHabits(habits, todayEntries) {
   });
 }
 
+const PROCESS_SCHEDULE_META = {
+  thinking:  { icon: 'Brain',     category: 'thinking' },
+  learning:  { icon: 'BookOpen',  category: 'learning' },
+  creating:  { icon: 'Hammer',    category: 'action' },
+  marketing: { icon: 'Megaphone', category: 'result' },
+};
+
+function processScheduleBlock(item) {
+  const meta = PROCESS_SCHEDULE_META[item.stage] ?? PROCESS_SCHEDULE_META.thinking;
+  return {
+    id: `process_${item.id}`,
+    sourceProcessId: item.id,
+    title: item.title,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    workDate: item.workDate,
+    icon: meta.icon,
+    category: meta.category,
+  };
+}
+
 export default function App() {
   const [tab, setTab] = useState('today');
 
@@ -140,15 +161,28 @@ export default function App() {
   // ── Work process handlers ────────────────────────────────────────────────
   const handleProcessAdd = useCallback(data => {
     const id = `wp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-    setProcessItems(previous => [...previous, { id, ...data }]);
+    const item = { id, ...data };
+    setProcessItems(previous => [...previous, item]);
+    setSchedItems(previous => [...previous, processScheduleBlock(item)]);
   }, []);
 
   const handleProcessEdit = useCallback(updated => {
     setProcessItems(previous => previous.map(item => item.id === updated.id ? updated : item));
+    setSchedItems(previous => {
+      if (!updated.startTime || !updated.endTime) {
+        return previous.filter(item => item.sourceProcessId !== updated.id);
+      }
+      const block = processScheduleBlock(updated);
+      const exists = previous.some(item => item.sourceProcessId === updated.id);
+      return exists
+        ? previous.map(item => item.sourceProcessId === updated.id ? block : item)
+        : [...previous, block];
+    });
   }, []);
 
   const handleProcessDelete = useCallback(id => {
     setProcessItems(previous => previous.filter(item => item.id !== id));
+    setSchedItems(previous => previous.filter(item => item.sourceProcessId !== id));
   }, []);
 
   // ── Derived ───────────────────────────────────────────────────────────────
@@ -174,6 +208,7 @@ export default function App() {
       {tab === 'schedule' && (
         <ScheduleView
           scheduleItems={schedItems}
+          todayKey={todayKey}
           todayData={todaySchedData}
           onToggle={handleSchedToggle}
           onAdd={handleSchedAdd}

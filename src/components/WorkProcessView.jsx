@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
+  Clock3,
   ChevronLeft,
   ChevronRight,
   Edit2,
@@ -176,6 +177,13 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
                       </div>
                     </div>
 
+                    {item.startTime && item.endTime && (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs font-extrabold" style={{ color: stage.color }}>
+                        <Clock3 size={14} /> {item.startTime} – {item.endTime}
+                        <span className="font-semibold text-gray-400">• Added to Schedule</span>
+                      </div>
+                    )}
+
                     {item.notes ? (
                       <div className="mt-2.5 flex items-start gap-2 bg-gray-50 rounded-lg p-2.5">
                         <FileText size={14} className="text-gray-400 mt-0.5 shrink-0" />
@@ -220,6 +228,7 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
           initialStage={modal.stage}
           initialDate={selectedDate}
           editItem={modal.editItem}
+          existingItems={items}
           onSave={handleSave}
           onClose={() => setModal(null)}
         />

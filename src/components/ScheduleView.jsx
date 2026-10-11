@@ -36,7 +36,7 @@ function getProgress(start, end) {
   return Math.round(((nowMins - startMins) / (endMins - startMins)) * 100);
 }
 
-export default function ScheduleView({ scheduleItems, todayData, onToggle, onAdd, onEdit, onDelete }) {
+export default function ScheduleView({ scheduleItems, todayKey, todayData, onToggle, onAdd, onEdit, onDelete }) {
   const [now, setNow] = useState(nowTimeStr);
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState(null);
@@ -47,7 +47,9 @@ export default function ScheduleView({ scheduleItems, todayData, onToggle, onAdd
     return () => clearInterval(id);
   }, []);
 
-  const sorted = [...scheduleItems].sort((a, b) => a.startTime.localeCompare(b.startTime));
+  const sorted = scheduleItems
+    .filter(item => !item.workDate || item.workDate === todayKey)
+    .sort((a, b) => (a.startTime || '99:99').localeCompare(b.startTime || '99:99'));
 
   const completedCount = sorted.filter(i => todayData?.[i.id]?.completed).length;
 
@@ -152,6 +154,11 @@ export default function ScheduleView({ scheduleItems, todayData, onToggle, onAdd
                       {item.title}
                       {isCurrent && <span className="ml-2 text-xs font-bold text-blue-500 bg-blue-100 px-2 py-0.5 rounded-full">In progress</span>}
                     </p>
+                    {item.sourceProcessId && (
+                      <span className="inline-flex text-xs font-bold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full mt-1">
+                        Process block
+                      </span>
+                    )}
                     <div className="flex items-center gap-2 mt-0.5">
                       <span className="text-sm text-gray-500 font-medium">
                         {fmt12(item.startTime)} – {fmt12(item.endTime)}
@@ -180,14 +187,18 @@ export default function ScheduleView({ scheduleItems, todayData, onToggle, onAdd
 
                   {/* Action buttons */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={() => { setEditItem(item); setShowAdd(true); }}
-                      className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors opacity-40 hover:opacity-100">
-                      <Edit2 size={14} className="text-gray-500" />
-                    </button>
-                    <button onClick={() => onDelete(item.id)}
-                      className="p-1.5 rounded-xl hover:bg-red-50 transition-colors opacity-40 hover:opacity-100">
-                      <Trash2 size={14} className="text-red-400" />
-                    </button>
+                    {!item.sourceProcessId && (
+                      <>
+                        <button onClick={() => { setEditItem(item); setShowAdd(true); }}
+                          className="p-1.5 rounded-xl hover:bg-gray-100 transition-colors opacity-40 hover:opacity-100">
+                          <Edit2 size={14} className="text-gray-500" />
+                        </button>
+                        <button onClick={() => onDelete(item.id)}
+                          className="p-1.5 rounded-xl hover:bg-red-50 transition-colors opacity-40 hover:opacity-100">
+                          <Trash2 size={14} className="text-red-400" />
+                        </button>
+                      </>
+                    )}
                     {/* Toggle done */}
                     <button onClick={() => onToggle(item.id)}
                       className="p-1 transition-all hover:scale-110 active:scale-95">

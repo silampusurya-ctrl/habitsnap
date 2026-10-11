@@ -3,17 +3,36 @@ import { Plus, Save, X } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { PROCESS_STAGES } from '../utils/processStorage';
 
-export default function AddWorkItemModal({ initialStage = 'thinking', initialDate, editItem, onSave, onClose }) {
+export default function AddWorkItemModal({ initialStage = 'thinking', initialDate, editItem, existingItems = [], onSave, onClose }) {
   const [title, setTitle] = useState(editItem?.title ?? '');
   const [notes, setNotes] = useState(editItem?.notes ?? '');
   const [stage, setStage] = useState(editItem?.stage ?? initialStage);
   const [workDate, setWorkDate] = useState(editItem?.workDate ?? initialDate);
+  const [startTime, setStartTime] = useState(editItem?.startTime ?? '09:00');
+  const [endTime, setEndTime] = useState(editItem?.endTime ?? '10:00');
   const [error, setError] = useState('');
 
   function handleSubmit(event) {
     event.preventDefault();
     if (!title.trim()) {
       setError('Work title enter பண்ணுங்க.');
+      return;
+    }
+    if (!startTime || !endTime || startTime >= endTime) {
+      setError('End time, start time-ஐ விட அதிகமா இருக்கணும்.');
+      return;
+    }
+
+    const overlapping = existingItems.some(item => (
+      item.id !== editItem?.id
+      && item.workDate === workDate
+      && item.startTime
+      && item.endTime
+      && startTime < item.endTime
+      && endTime > item.startTime
+    ));
+    if (overlapping) {
+      setError('இந்த நேரத்தில் இன்னொரு Process work இருக்கு. வேறு time தேர்வு பண்ணுங்க.');
       return;
     }
 
@@ -23,6 +42,8 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
       notes: notes.trim(),
       stage,
       workDate,
+      startTime,
+      endTime,
     });
     onClose();
   }
@@ -106,6 +127,31 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
               onChange={event => setWorkDate(event.target.value)}
               className="w-full border border-gray-200 rounded-xl px-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400"
             />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">Start Time</label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={event => { setStartTime(event.target.value); setError(''); }}
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-bold text-gray-700 mb-1.5">End Time</label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={event => { setEndTime(event.target.value); setError(''); }}
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+            </div>
+          </div>
+
+          <div className="rounded-xl bg-green-50 border border-green-100 px-3.5 py-3 text-sm text-green-700 font-semibold">
+            இந்த timing Daily Schedule-ல் தானாக சேர்க்கப்படும்.
           </div>
 
           <button

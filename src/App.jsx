@@ -163,7 +163,9 @@ export default function App() {
     const id = `wp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
     const item = { id, ...data };
     setProcessItems(previous => [...previous, item]);
-    setSchedItems(previous => [...previous, processScheduleBlock(item)]);
+    if (item.startTime && item.endTime) {
+      setSchedItems(previous => [...previous, processScheduleBlock(item)]);
+    }
   }, []);
 
   const handleProcessEdit = useCallback(updated => {

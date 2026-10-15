@@ -10,6 +10,9 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
   const [workDate, setWorkDate] = useState(editItem?.workDate ?? initialDate);
   const [startTime, setStartTime] = useState(editItem?.startTime ?? '09:00');
   const [endTime, setEndTime] = useState(editItem?.endTime ?? '10:00');
+  const [scheduleEnabled, setScheduleEnabled] = useState(
+    editItem ? Boolean(editItem.startTime && editItem.endTime) : true,
+  );
   const [error, setError] = useState('');
 
   function handleSubmit(event) {
@@ -18,12 +21,12 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
       setError('Work title enter பண்ணுங்க.');
       return;
     }
-    if (!startTime || !endTime || startTime >= endTime) {
+    if (scheduleEnabled && (!startTime || !endTime || startTime >= endTime)) {
       setError('End time, start time-ஐ விட அதிகமா இருக்கணும்.');
       return;
     }
 
-    const overlapping = existingItems.some(item => (
+    const overlapping = scheduleEnabled && existingItems.some(item => (
       item.id !== editItem?.id
       && item.workDate === workDate
       && item.startTime
@@ -42,8 +45,8 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
       notes: notes.trim(),
       stage,
       workDate,
-      startTime,
-      endTime,
+      startTime: scheduleEnabled ? startTime : '',
+      endTime: scheduleEnabled ? endTime : '',
     });
     onClose();
   }
@@ -129,7 +132,20 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <label className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 cursor-pointer">
+            <div>
+              <p className="text-sm font-bold text-gray-700">Add timing to Daily Schedule</p>
+              <p className="text-xs text-gray-400 mt-0.5">Timing இல்லாமலும் stage-ல் save செய்யலாம்.</p>
+            </div>
+            <input
+              type="checkbox"
+              checked={scheduleEnabled}
+              onChange={event => { setScheduleEnabled(event.target.checked); setError(''); }}
+              className="w-5 h-5 accent-green-500"
+            />
+          </label>
+
+          {scheduleEnabled && <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-bold text-gray-700 mb-1.5">Start Time</label>
               <input
@@ -148,11 +164,11 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
                 className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-green-400"
               />
             </div>
-          </div>
+          </div>}
 
-          <div className="rounded-xl bg-green-50 border border-green-100 px-3.5 py-3 text-sm text-green-700 font-semibold">
+          {scheduleEnabled && <div className="rounded-xl bg-green-50 border border-green-100 px-3.5 py-3 text-sm text-green-700 font-semibold">
             இந்த timing Daily Schedule-ல் தானாக சேர்க்கப்படும்.
-          </div>
+          </div>}
 
           <button
             type="submit"

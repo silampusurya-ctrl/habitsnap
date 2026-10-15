@@ -16,9 +16,9 @@ export default function AddHabitModal({ existingNames, onAdd, onClose, editHabit
   const handleSubmit = (e) => {
     e.preventDefault();
     const trimmed = name.trim();
-    if (!trimmed) { setError('Habit name enter பண்ணுங்க.'); return; }
+    if (!trimmed) { setError('Please enter a habit name.'); return; }
     if (!isEdit && existingNames.includes(trimmed.toLowerCase())) {
-      setError('இந்த பெயரில் habit already இருக்கு.');
+      setError('A habit with this name already exists.');
       return;
     }
     onAdd({ name: trimmed, icon, time });
@@ -82,13 +82,13 @@ export default function AddHabitModal({ existingNames, onAdd, onClose, editHabit
               />
             </div>
             {time && (
-              <p className="text-sm text-green-600 font-medium mt-1 ml-1">⏰ {fmt12(time)} க்கு reminder</p>
+              <p className="text-sm text-green-600 font-medium mt-1 ml-1">⏰ Reminder at {fmt12(time)}</p>
             )}
           </div>
 
           {/* Icon picker */}
           <div>
-            <label className="block text-base font-semibold text-gray-700 mb-2">Icon தேர்வு</label>
+            <label className="block text-base font-semibold text-gray-700 mb-2">Choose an icon</label>
             <div className="grid grid-cols-6 gap-1.5 max-h-44 overflow-y-auto pr-1">
               {ICON_OPTIONS.map((iconName) => {
                 const LucideIcon = Icons[iconName];

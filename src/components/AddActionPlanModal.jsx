@@ -9,7 +9,7 @@ export default function AddActionPlanModal({ editItem, onSave, onClose }) {
   function handleSubmit(event) {
     event.preventDefault();
     if (!title.trim()) {
-      setError('Action plan title enter பண்ணுங்க.');
+      setError('Please enter an action plan title.');
       return;
     }
     onSave({ ...editItem, title: title.trim(), notes: notes.trim() });
@@ -62,7 +62,7 @@ export default function AddActionPlanModal({ editItem, onSave, onClose }) {
           </div>
 
           <div className="rounded-xl bg-amber-50 border border-amber-100 px-3.5 py-3 text-sm text-amber-800 font-semibold">
-            Date அல்லது time இப்போது தேவையில்லை. பின்னர் சரியான stage-க்கு move செய்யலாம்.
+            No date or time is needed now. Move it to the right stage when you are ready.
           </div>
 
           <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2">

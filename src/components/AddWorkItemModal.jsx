@@ -18,11 +18,11 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
   function handleSubmit(event) {
     event.preventDefault();
     if (!title.trim()) {
-      setError('Work title enter பண்ணுங்க.');
+      setError('Please enter a work title.');
       return;
     }
     if (scheduleEnabled && (!startTime || !endTime || startTime >= endTime)) {
-      setError('End time, start time-ஐ விட அதிகமா இருக்கணும்.');
+      setError('End time must be later than start time.');
       return;
     }
 
@@ -35,7 +35,7 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
       && endTime > item.startTime
     ));
     if (overlapping) {
-      setError('இந்த நேரத்தில் இன்னொரு Process work இருக்கு. வேறு time தேர்வு பண்ணுங்க.');
+      setError('Another process item already uses this time. Please choose a different time.');
       return;
     }
 
@@ -135,7 +135,7 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
           <label className="flex items-center justify-between gap-3 rounded-xl border border-gray-200 px-4 py-3 cursor-pointer">
             <div>
               <p className="text-sm font-bold text-gray-700">Add timing to Daily Schedule</p>
-              <p className="text-xs text-gray-400 mt-0.5">Timing இல்லாமலும் stage-ல் save செய்யலாம்.</p>
+              <p className="text-xs text-gray-400 mt-0.5">You can save this stage without setting a time.</p>
             </div>
             <input
               type="checkbox"
@@ -167,7 +167,7 @@ export default function AddWorkItemModal({ initialStage = 'thinking', initialDat
           </div>}
 
           {scheduleEnabled && <div className="rounded-xl bg-green-50 border border-green-100 px-3.5 py-3 text-sm text-green-700 font-semibold">
-            இந்த timing Daily Schedule-ல் தானாக சேர்க்கப்படும்.
+            This time block will be added to your Daily Schedule automatically.
           </div>}
 
           <button

@@ -22,8 +22,8 @@ export default function AddScheduleModal({ onAdd, onClose, editItem }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!title.trim()) { setError('Title enter பண்ணுங்க.'); return; }
-    if (startTime >= endTime) { setError('End time, start time-ஐ விட அதிகமா இருக்கணும்.'); return; }
+    if (!title.trim()) { setError('Please enter a title.'); return; }
+    if (startTime >= endTime) { setError('End time must be later than start time.'); return; }
     onAdd({ title: title.trim(), startTime, endTime, icon, category });
     onClose();
   };
@@ -96,7 +96,7 @@ export default function AddScheduleModal({ onAdd, onClose, editItem }) {
 
           {/* Icon */}
           <div>
-            <label className="block text-base font-semibold text-gray-700 mb-2">Icon தேர்வு</label>
+            <label className="block text-base font-semibold text-gray-700 mb-2">Choose an icon</label>
             <div className="grid grid-cols-6 gap-1.5 max-h-36 overflow-y-auto pr-1">
               {ICON_OPTIONS.map(name => {
                 const LI = Icons[name];

@@ -170,7 +170,7 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
         <section className="max-w-3xl mx-auto">
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 mb-4">
             <h2 className="font-extrabold text-amber-900 flex items-center gap-2"><ClipboardList size={20} /> Master Action Plan</h2>
-            <p className="text-sm text-amber-700 mt-1">எல்லா ideas மற்றும் வேலைகளையும் முதலில் notes ஆக capture செய்யுங்கள். Date/time இல்லாமல் save செய்யலாம்.</p>
+            <p className="text-sm text-amber-700 mt-1">Capture every idea and task as notes first. You can save them without a date or time.</p>
           </div>
 
           <div className="space-y-3">

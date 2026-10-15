@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
+  AlarmClock,
+  Bell,
   CalendarDays,
   Camera,
   CheckCircle2,
@@ -15,6 +17,7 @@ import {
   FileText,
   Plus,
   Trash2,
+  Trophy,
 } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import AddWorkItemModal from './AddWorkItemModal';
@@ -41,6 +44,30 @@ function formatDate(dateKey) {
   return new Date(`${dateKey}T12:00:00`).toLocaleDateString('en-US', {
     weekday: 'short', month: 'short', day: 'numeric',
   });
+}
+
+function getDeadline(item) {
+  if (!item.deadlineDate || !item.deadlineTime) return null;
+  const timestamp = new Date(`${item.deadlineDate}T${item.deadlineTime}:00`).getTime();
+  return Number.isNaN(timestamp) ? null : timestamp;
+}
+
+function formatDeadline(item) {
+  const deadline = getDeadline(item);
+  if (!deadline) return '';
+  return new Date(deadline).toLocaleString('en-US', {
+    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+  });
+}
+
+function formatRemaining(milliseconds) {
+  const totalMinutes = Math.max(0, Math.ceil(milliseconds / 60_000));
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+  if (days > 0) return `${days}d ${hours}h left`;
+  if (hours > 0) return `${hours}h ${minutes}m left`;
+  return `${minutes}m left`;
 }
 
 function ProcessProof({ item, onPreview }) {
@@ -105,6 +132,10 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
   const [modal, setModal] = useState(null);
   const [planModal, setPlanModal] = useState(null);
   const [preview, setPreview] = useState(null);
+  const [nowMs, setNowMs] = useState(Date.now);
+  const [notificationPermission, setNotificationPermission] = useState(
+    () => typeof Notification === 'undefined' ? 'unsupported' : Notification.permission,
+  );
 
   const dailyItems = useMemo(
     () => items.filter(item => item.workDate === selectedDate),
@@ -115,6 +146,33 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
   const total = dailyItems.length;
   const marketCount = stageCounts[stageCounts.length - 1];
   const planItems = items.filter(item => item.stage === 'plan');
+  const earnedPoints = items.reduce(
+    (sum, item) => sum + (item.rewardEarned ? Number(item.rewardPoints) || 0 : 0),
+    0,
+  );
+
+  useEffect(() => {
+    const interval = setInterval(() => setNowMs(Date.now()), 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    if (notificationPermission !== 'granted') return;
+    const notified = JSON.parse(localStorage.getItem('habitsnap_deadline_notifications_v1') || '{}');
+    let changed = false;
+    items.forEach(item => {
+      const deadline = getDeadline(item);
+      if (!item.completed && deadline && deadline < nowMs && !notified[item.id]) {
+        new Notification('EMERGENCY: Task overdue', {
+          body: `${item.title} passed its deadline. Take action now.`,
+          icon: '/icon-192.png',
+        });
+        notified[item.id] = true;
+        changed = true;
+      }
+    });
+    if (changed) localStorage.setItem('habitsnap_deadline_notifications_v1', JSON.stringify(notified));
+  }, [items, notificationPermission, nowMs]);
 
   function moveItem(item, direction) {
     const currentIndex = PROCESS_STAGES.findIndex(stage => stage.id === item.stage);
@@ -159,6 +217,23 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
     setSelectedDate(localDateKey());
   }
 
+  function toggleComplete(item) {
+    if (item.completed) {
+      onEdit({ ...item, completed: false, completedAt: '', rewardEarned: false });
+      return;
+    }
+    const completedAt = new Date().toISOString();
+    const deadline = getDeadline(item);
+    const rewardEarned = !deadline || new Date(completedAt).getTime() <= deadline;
+    onEdit({ ...item, completed: true, completedAt, rewardEarned });
+  }
+
+  async function enableNotifications() {
+    if (typeof Notification === 'undefined') return;
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+  }
+
   return (
     <div className="max-w-7xl mx-auto px-4 pb-32">
       <header className="pt-7 pb-4">
@@ -192,6 +267,20 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
           >
             <Columns3 size={18} /> Daily Process
           </button>
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white border border-gray-100 px-3 py-2.5 shadow-sm">
+          <div className="flex items-center gap-2 text-sm font-extrabold text-amber-600">
+            <Trophy size={18} /> {earnedPoints} reward points earned
+          </div>
+          {notificationPermission !== 'granted' && notificationPermission !== 'unsupported' && (
+            <button type="button" onClick={enableNotifications} className="flex items-center gap-1.5 rounded-lg bg-red-50 text-red-600 px-3 py-2 text-xs font-extrabold hover:bg-red-100">
+              <Bell size={15} /> Enable deadline alerts
+            </button>
+          )}
+          {notificationPermission === 'granted' && (
+            <span className="flex items-center gap-1.5 text-xs font-bold text-green-600"><Bell size={14} /> Deadline alerts enabled</span>
+          )}
         </div>
 
         {view === 'daily' && <div className="mt-3 bg-white border border-gray-100 rounded-2xl shadow-sm p-3 flex flex-wrap items-center justify-between gap-3">
@@ -250,11 +339,22 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
             )}
 
             {planItems.map(item => (
-              <article key={item.id} className="rounded-2xl bg-white border border-gray-100 shadow-sm p-4">
+              <article key={item.id} className={`rounded-2xl border shadow-sm p-4 ${item.completed ? 'bg-green-50 border-green-200' : getDeadline(item) && getDeadline(item) < nowMs ? 'bg-red-50 border-red-300' : 'bg-white border-gray-100'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-extrabold text-gray-900 text-lg">{item.title}</h3>
+                    <h3 className={`font-extrabold text-lg ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.title}</h3>
                     {item.notes && <p className="text-sm text-gray-600 whitespace-pre-wrap break-words mt-2">{item.notes}</p>}
+                    {getDeadline(item) && (
+                      <div className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-extrabold ${!item.completed && getDeadline(item) < nowMs ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-100 text-gray-600'}`}>
+                        <AlarmClock size={14} />
+                        {!item.completed && getDeadline(item) < nowMs ? 'EMERGENCY — OVERDUE' : `${formatDeadline(item)} · ${formatRemaining(getDeadline(item) - nowMs)}`}
+                      </div>
+                    )}
+                    {(item.rewardPoints > 0 || item.rewardLabel) && (
+                      <p className={`mt-2 flex items-center gap-1.5 text-xs font-bold ${item.rewardEarned ? 'text-amber-600' : 'text-gray-400'}`}>
+                        <Trophy size={14} /> {item.rewardPoints || 0} points{item.rewardLabel ? ` · ${item.rewardLabel}` : ''}{item.rewardEarned ? ' — UNLOCKED' : ''}
+                      </p>
+                    )}
                   </div>
                   <div className="flex shrink-0">
                     <button type="button" onClick={() => setPlanModal({ editItem: item })} className="p-2 rounded-lg hover:bg-gray-100" aria-label="Edit plan">
@@ -266,7 +366,16 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
                   </div>
                 </div>
 
-                <div className="mt-4 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => toggleComplete(item)}
+                  className={`mt-3 w-full flex items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-extrabold ${item.completed ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-green-100 hover:text-green-700'}`}
+                >
+                  {item.completed ? <CheckCircle2 size={18} /> : <Circle size={18} />}
+                  {item.completed ? (item.rewardEarned ? 'Completed — Reward Unlocked' : 'Completed Late') : 'Mark Complete'}
+                </button>
+
+                {!item.completed && <div className="mt-4 pt-3 border-t border-gray-100">
                   <p className="text-xs font-extrabold text-gray-400 uppercase tracking-wider mb-2">Move to today&apos;s stage</p>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {PROCESS_STAGES.map(stage => {
@@ -284,7 +393,7 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
                       );
                     })}
                   </div>
-                </div>
+                </div>}
               </article>
             ))}
           </div>
@@ -375,7 +484,7 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
                       <ProcessProof item={item} onPreview={(src, title) => setPreview({ src, title })} />
                       <button
                         type="button"
-                        onClick={() => onEdit({ ...item, completed: !item.completed })}
+                        onClick={() => toggleComplete(item)}
                         className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-extrabold transition-colors ${item.completed ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700'}`}
                         aria-label={item.completed ? 'Mark incomplete' : 'Mark complete'}
                       >
@@ -383,6 +492,18 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
                         {item.completed ? 'Completed' : 'Complete'}
                       </button>
                     </div>
+
+                    {getDeadline(item) && (
+                      <div className={`mt-2 flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-extrabold ${!item.completed && getDeadline(item) < nowMs ? 'bg-red-600 text-white animate-pulse' : 'bg-gray-100 text-gray-600'}`}>
+                        <AlarmClock size={14} />
+                        {!item.completed && getDeadline(item) < nowMs ? 'EMERGENCY — OVERDUE' : `${formatDeadline(item)} · ${formatRemaining(getDeadline(item) - nowMs)}`}
+                      </div>
+                    )}
+                    {(item.rewardPoints > 0 || item.rewardLabel) && (
+                      <p className={`mt-2 flex items-center gap-1.5 text-xs font-bold ${item.rewardEarned ? 'text-amber-600' : 'text-gray-400'}`}>
+                        <Trophy size={14} /> {item.rewardPoints || 0} points{item.rewardLabel ? ` · ${item.rewardLabel}` : ''}{item.rewardEarned ? ' — UNLOCKED' : ''}
+                      </p>
+                    )}
 
                     <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
                       <button

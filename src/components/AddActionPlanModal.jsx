@@ -4,6 +4,10 @@ import { ClipboardPlus, Save, X } from 'lucide-react';
 export default function AddActionPlanModal({ editItem, onSave, onClose }) {
   const [title, setTitle] = useState(editItem?.title ?? '');
   const [notes, setNotes] = useState(editItem?.notes ?? '');
+  const [deadlineDate, setDeadlineDate] = useState(editItem?.deadlineDate ?? '');
+  const [deadlineTime, setDeadlineTime] = useState(editItem?.deadlineTime ?? '18:00');
+  const [rewardPoints, setRewardPoints] = useState(editItem?.rewardPoints ?? 10);
+  const [rewardLabel, setRewardLabel] = useState(editItem?.rewardLabel ?? '');
   const [error, setError] = useState('');
 
   function handleSubmit(event) {
@@ -12,7 +16,19 @@ export default function AddActionPlanModal({ editItem, onSave, onClose }) {
       setError('Please enter an action plan title.');
       return;
     }
-    onSave({ ...editItem, title: title.trim(), notes: notes.trim() });
+    if (deadlineDate && !deadlineTime) {
+      setError('Please choose a deadline time.');
+      return;
+    }
+    onSave({
+      ...editItem,
+      title: title.trim(),
+      notes: notes.trim(),
+      deadlineDate,
+      deadlineTime: deadlineDate ? deadlineTime : '',
+      rewardPoints: Math.max(0, Number(rewardPoints) || 0),
+      rewardLabel: rewardLabel.trim(),
+    });
     onClose();
   }
 
@@ -61,8 +77,53 @@ export default function AddActionPlanModal({ editItem, onSave, onClose }) {
             <p className="text-right text-xs text-gray-400 mt-1">{notes.length}/2000</p>
           </div>
 
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1.5">Time Limit / Deadline</label>
+            <div className="grid grid-cols-2 gap-3">
+              <input
+                type="date"
+                value={deadlineDate}
+                onChange={event => { setDeadlineDate(event.target.value); setError(''); }}
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+              <input
+                type="time"
+                value={deadlineTime}
+                disabled={!deadlineDate}
+                onChange={event => { setDeadlineTime(event.target.value); setError(''); }}
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base disabled:bg-gray-100 disabled:text-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+            <p className="text-xs text-gray-400 mt-1">Leave the date empty if this task has no deadline.</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-gray-700 mb-1.5">Completion Reward</label>
+            <div className="grid grid-cols-[100px_1fr] gap-3">
+              <div>
+                <input
+                  type="number"
+                  min="0"
+                  max="10000"
+                  value={rewardPoints}
+                  onChange={event => setRewardPoints(event.target.value)}
+                  className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400"
+                />
+                <p className="text-xs text-gray-400 mt-1 text-center">Points</p>
+              </div>
+              <input
+                type="text"
+                maxLength={80}
+                value={rewardLabel}
+                onChange={event => setRewardLabel(event.target.value)}
+                placeholder="e.g. Coffee, movie, 30-minute break"
+                className="w-full border border-gray-200 rounded-xl px-3 py-3 text-base focus:outline-none focus:ring-2 focus:ring-amber-400"
+              />
+            </div>
+          </div>
+
           <div className="rounded-xl bg-amber-50 border border-amber-100 px-3.5 py-3 text-sm text-amber-800 font-semibold">
-            No date or time is needed now. Move it to the right stage when you are ready.
+            A deadline is optional. Rewards unlock only when the task is completed within its deadline.
           </div>
 
           <button type="submit" className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2">

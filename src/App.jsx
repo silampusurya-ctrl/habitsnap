@@ -170,6 +170,19 @@ export default function App() {
 
   const handleProcessEdit = useCallback(updated => {
     setProcessItems(previous => previous.map(item => item.id === updated.id ? updated : item));
+    if (updated.workDate && typeof updated.completed === 'boolean') {
+      const scheduleId = `process_${updated.id}`;
+      setSchedData(previous => {
+        const day = previous[updated.workDate] || {};
+        return {
+          ...previous,
+          [updated.workDate]: {
+            ...day,
+            [scheduleId]: updated.completed ? { completed: true, timestamp: Date.now() } : null,
+          },
+        };
+      });
+    }
     setSchedItems(previous => {
       if (!updated.startTime || !updated.endTime) {
         return previous.filter(item => item.sourceProcessId !== updated.id);

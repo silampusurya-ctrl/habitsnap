@@ -1,8 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
   CalendarDays,
+  Camera,
+  CheckCircle2,
+  Circle,
   Clock3,
   ClipboardList,
   Columns3,
@@ -16,7 +19,10 @@ import {
 import * as Icons from 'lucide-react';
 import AddWorkItemModal from './AddWorkItemModal';
 import AddActionPlanModal from './AddActionPlanModal';
+import ImagePreviewModal from './ImagePreviewModal';
 import { PROCESS_STAGES } from '../utils/processStorage';
+import { ALLOWED_TYPES, compressImage } from '../utils/imageUtils';
+import { getPhoto, savePhoto } from '../utils/photoDb';
 
 function localDateKey(date = new Date()) {
   const year = date.getFullYear();
@@ -37,11 +43,68 @@ function formatDate(dateKey) {
   });
 }
 
+function ProcessProof({ item, onPreview }) {
+  const [photo, setPhoto] = useState(null);
+  const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState('');
+  const photoDate = item.workDate || 'process';
+  const photoId = `process_${item.id}`;
+
+  useEffect(() => {
+    let active = true;
+    getPhoto(photoDate, photoId)
+      .then(savedPhoto => { if (active) setPhoto(savedPhoto); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, [photoDate, photoId]);
+
+  async function handleProof(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setError('JPG, PNG or WebP only.');
+      event.target.value = '';
+      return;
+    }
+
+    setUploading(true);
+    setError('');
+    try {
+      const compressed = await compressImage(file);
+      await savePhoto(photoDate, photoId, compressed);
+      setPhoto(compressed);
+    } catch {
+      setError('Could not save proof. Try again.');
+    } finally {
+      setUploading(false);
+      event.target.value = '';
+    }
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-2">
+        <label className="cursor-pointer flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-2 text-xs font-extrabold text-blue-700 hover:bg-blue-100">
+          <Camera size={15} /> {uploading ? 'Saving...' : photo ? 'Update Proof' : 'Proof'}
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={handleProof} disabled={uploading} />
+        </label>
+        {photo && (
+          <button type="button" onClick={() => onPreview(photo, item.title)} className="w-9 h-9 rounded-lg overflow-hidden border-2 border-blue-200">
+            <img src={photo} alt={`${item.title} proof`} className="w-full h-full object-cover" />
+          </button>
+        )}
+      </div>
+      {error && <p className="text-xs text-red-500 font-semibold mt-1">{error}</p>}
+    </div>
+  );
+}
+
 export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
   const [view, setView] = useState('plan');
   const [selectedDate, setSelectedDate] = useState(localDateKey);
   const [modal, setModal] = useState(null);
   const [planModal, setPlanModal] = useState(null);
+  const [preview, setPreview] = useState(null);
 
   const dailyItems = useMemo(
     () => items.filter(item => item.workDate === selectedDate),
@@ -277,9 +340,9 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
                 )}
 
                 {stageItems.map(item => (
-                  <article key={item.id} className="bg-white rounded-xl border border-white shadow-sm p-3.5 animate-fade-in">
+                  <article key={item.id} className={`rounded-xl border shadow-sm p-3.5 animate-fade-in ${item.completed ? 'bg-green-50 border-green-200' : 'bg-white border-white'}`}>
                     <div className="flex items-start justify-between gap-2">
-                      <h3 className="font-extrabold text-gray-900 leading-snug">{item.title}</h3>
+                      <h3 className={`font-extrabold leading-snug ${item.completed ? 'text-gray-400 line-through' : 'text-gray-900'}`}>{item.title}</h3>
                       <div className="flex items-center shrink-0">
                         <button type="button" onClick={() => setModal({ editItem: item })} className="p-1.5 rounded-lg hover:bg-gray-100" aria-label="Edit work">
                           <Edit2 size={14} className="text-gray-400" />
@@ -307,6 +370,19 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
                         + Add notes
                       </button>
                     )}
+
+                    <div className="mt-3 flex items-center justify-between gap-2">
+                      <ProcessProof item={item} onPreview={(src, title) => setPreview({ src, title })} />
+                      <button
+                        type="button"
+                        onClick={() => onEdit({ ...item, completed: !item.completed })}
+                        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-2 text-xs font-extrabold transition-colors ${item.completed ? 'bg-green-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-green-50 hover:text-green-700'}`}
+                        aria-label={item.completed ? 'Mark incomplete' : 'Mark complete'}
+                      >
+                        {item.completed ? <CheckCircle2 size={17} /> : <Circle size={17} />}
+                        {item.completed ? 'Completed' : 'Complete'}
+                      </button>
+                    </div>
 
                     <div className="mt-3 pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
                       <button
@@ -352,6 +428,14 @@ export default function WorkProcessView({ items, onAdd, onEdit, onDelete }) {
           editItem={planModal.editItem}
           onSave={handlePlanSave}
           onClose={() => setPlanModal(null)}
+        />
+      )}
+
+      {preview && (
+        <ImagePreviewModal
+          src={preview.src}
+          habitName={preview.title}
+          onClose={() => setPreview(null)}
         />
       )}
     </div>
